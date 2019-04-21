@@ -1,0 +1,14 @@
+<!doctype html>
+<html>
+<head><title>MDB Table</title></head>
+<body>
+<h1>MDB Table</h1>
+<div>
+  <form action="/" method="POST" enctype="multipart/form-data">
+    <p>{{ form.mdb_file.label }}: {{ form.mdb_file() }}</p>
+    <p>{{ form.table_name.label }}: {{ form.table_name() }}</p>
+    <input type="submit" value="Dump"/>
+  </form>
+</div>
+</body>
+</html>
