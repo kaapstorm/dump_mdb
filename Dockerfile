@@ -10,4 +10,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 ENV PYTHONUNBUFFERED 1
 RUN useradd -m appuser
 USER appuser
-CMD gunicorn --workers=2 --bind=0.0.0.0:$PORT app:app
+CMD gunicorn --bind=0.0.0.0:$PORT app:app
