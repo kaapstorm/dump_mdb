@@ -35,12 +35,16 @@ def unauthorized():
     )
 
 
+def nothing_to_see_here():
+    return Response('Hello world!', 200)
+
+
 def requires_auth(func):
     @wraps(func)
     def decorated(*args, **kwargs):
         auth = request.authorization
         if not auth or not check_auth(auth.username, auth.password):
-            return unauthorized()
+            return nothing_to_see_here()
         return func(*args, **kwargs)
     return decorated
 
