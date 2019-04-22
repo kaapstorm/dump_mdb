@@ -11,8 +11,8 @@ from wtforms import StringField, FileField
 from wtforms.validators import DataRequired
 
 MDB_EXPORT_CMD = '/usr/bin/mdb-export'
-BASIC_USERNAME = os.environ['BASIC_USERNAME']
-BASIC_PASSWORD = os.environ['BASIC_PASSWORD']
+MDB_DUMP_USERNAME = os.environ['MDB_DUMP_USERNAME']
+MDB_DUMP_PASSWORD = os.environ['MDB_DUMP_PASSWORD']
 
 
 app = Flask(__name__)
@@ -25,7 +25,7 @@ class MdbTableForm(FlaskForm):
 
 
 def check_auth(username, password):
-    return username == BASIC_USERNAME and password == BASIC_PASSWORD
+    return username == MDB_DUMP_USERNAME and password == MDB_DUMP_PASSWORD
 
 
 def unauthorized():
