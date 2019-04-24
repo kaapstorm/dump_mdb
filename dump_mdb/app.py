@@ -11,6 +11,7 @@ from wtforms import StringField, FileField
 from wtforms.validators import DataRequired
 
 MDB_EXPORT_CMD = '/usr/bin/mdb-export'
+MDB_TABLES_CMD = '/usr/bin/mdb-tables'
 MDB_DUMP_USERNAME = os.environ['MDB_DUMP_USERNAME']
 MDB_DUMP_PASSWORD = os.environ['MDB_DUMP_PASSWORD']
 
@@ -28,51 +29,62 @@ def check_auth(username, password):
     return username == MDB_DUMP_USERNAME and password == MDB_DUMP_PASSWORD
 
 
-def unauthorized():
+def unauthorized_response():
     return Response(
-        'Basic authentication failed', 401,
+        'Unauthorized', 401,
         headers={'WWW-Authenticate': 'Basic realm="Login required"'}
     )
 
 
-def nothing_to_see_here():
-    return Response('Hello world!', 200)
+def ok_response():
+    return Response('OK', 200)
 
 
-def requires_auth(func):
+def authenticate(func):
     @wraps(func)
     def decorated(*args, **kwargs):
         auth = request.authorization
-        if not auth or not check_auth(auth.username, auth.password):
-            return nothing_to_see_here()
+        if not auth:
+            return ok_response()
+        if not check_auth(auth.username, auth.password):
+            return unauthorized_response()
         return func(*args, **kwargs)
     return decorated
 
 
 @app.route("/", methods=['GET', 'POST'])
-@requires_auth
+@authenticate
 def index():
     form = MdbTableForm()
     if form.validate_on_submit():
         try:
-            response = dump_table(form.mdb_file, form.table_name)
-            mimetype = 'text/csv'
+            csv_export = export_table(
+                form.mdb_file.data,
+                str(form.table_name.data)
+            )
+            return Response(csv_export, 200, mimetype='text/csv')
         except CalledProcessError:
-            response = ("That didn't work. "
-                        "Please check the file is valid and the table exists")
-            mimetype = None
-        return Response(response, 200, mimetype=mimetype)
+            return Response(
+                "That didn't work. Please check the file is valid.", 400
+            )
+        except ValueError:
+            return Response(
+                "That didn't work. Please check the table exists.", 400
+            )
     return render_template('mdb_table_form.html', form=form)
 
 
-def dump_table(mdb_file, table_name):
-    table_name = str(table_name.data)
+def export_table(mdb_file, table):
     with closing(NamedTemporaryFile()) as tmp_file:
-        mdb_file.data.save(tmp_file)
-        output = check_output(
-            (MDB_EXPORT_CMD, tmp_file.name, table_name)
+        mdb_file.save(tmp_file)
+        tables = check_output((MDB_TABLES_CMD, '-1', tmp_file.name))
+        tables = [n for n in tables.decode('ascii').split('\n') if n]
+        if table not in tables:
+            raise ValueError('Table not found in MDB')
+        csv_export = check_output(
+            (MDB_EXPORT_CMD, tmp_file.name, table)
         )
-    return output
+    return csv_export
 
 
 if __name__ == "__main__":
